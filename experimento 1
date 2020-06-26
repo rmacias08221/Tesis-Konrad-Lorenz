@@ -1,0 +1,593 @@
+####PAQUETES####
+library(dplyr)
+library(reshape2)
+library(reshape)
+library(tidyr)
+library(effsize)
+require(coin)
+library(lsr)
+library(rcompanion)
+library(readxl)
+library(pwr)
+library(tidyverse)
+getGroupMembers("Summary")
+####CARGA DE DOCUMENTOS####
+Experimento1 <- read_excel("D:/INFORMACION/Escritorio/Experimento1_arreglada.xlsx", sheet = "Worksheet",na = "NA")
+Experimento1_a=Experimento1
+names(Experimento1_a)
+Experimento1_a$`CONTEO IN-OUT`[is.na(Experimento1_a$`CONTEO IN-OUT`)] <- 0
+summary(Experimento1_a$`CONTEO IN-OUT`)
+Experimento1_a$`CONTEO OUT-IN`[is.na(Experimento1_a$`CONTEO OUT-IN`)] <- 0
+summary(Experimento1_a$`CONTEO OUT-IN`)
+
+WB1_a<-Experimento1_a[,c(1:4,7,10,20:30,32,478:507,518:547,558:587,598:627,334:477)]
+#WB1_a1<-Experimento1_a[,c(1:4,7,10,478:507,518:547,558:587,598:627,334:477)]
+
+WB1_a$mean_likert_in=apply(WB1_a[,19:48], 1, mean, na.rm=TRUE)
+WB1_a$mean_likert_out=apply(WB1_a[,49:78], 1, mean, na.rm=TRUE)
+WB1_a$sd_likert_in=apply(WB1_a[,19:48], 1, sd, na.rm=TRUE)
+WB1_a$sd_likert_out=apply(WB1_a[,49:78], 1, sd, na.rm=TRUE)
+WB1_a$median_likert_in=apply(WB1_a[,19:48], 1, median, na.rm=TRUE)
+WB1_a$median_likert_out=apply(WB1_a[,49:78], 1, median, na.rm=TRUE)
+
+WB1_a$mean_time_in=apply(WB1_a[,79:108], 1, mean, na.rm=TRUE)
+WB1_a$mean_time_out=apply(WB1_a[,109:138], 1, mean, na.rm=TRUE)
+WB1_a$sd_time_in=apply(WB1_a[,79:108], 1, sd, na.rm=TRUE)
+WB1_a$sd_time_out=apply(WB1_a[,109:138], 1, sd, na.rm=TRUE)
+
+WB1_b<-Experimento1_a[,c(1:4,7,10,20:30,32,639,640,809:892)]
+dim(WB1_b)
+dim(WB1_a)
+
+WB1_b<-as.data.frame(cbind(WB1_b,WB1_a$sd_likert_in,WB1_a$sd_likert_out),stringsAsFactors=FALSE)
+dim(WB1_b)
+
+WB1_b$sd_likert_in<-as.numeric(WB1_b$`WB1_a$sd_likert_in`)
+WB1_b$sd_likert_out<-as.numeric(WB1_b$`WB1_a$sd_likert_out`)
+
+WB1_b<-mutate(WB1_b,Conteo_in = WB1_b$`CONTEO IN-OUT` + WB1_b$`CONTEO OUT-IN`,
+                Conteo_out = 42-(WB1_b$`CONTEO IN-OUT` + WB1_b$`CONTEO OUT-IN`),
+                Prop_in=(WB1_b$`CONTEO IN-OUT` + WB1_b$`CONTEO OUT-IN`)/42,
+                Prop_out=(42-(WB1_b$`CONTEO IN-OUT` + WB1_b$`CONTEO OUT-IN`))/42,
+              mean_time_in_par=rowMeans(WB1_b[,21:62],na.rm=TRUE),
+                mean_time_out_par=rowMeans(WB1_b[,63:104],na.rm=TRUE))
+
+WB1_b$sd_time_in_par=apply(WB1_b[,21:62], 1, sd, na.rm=TRUE)
+WB1_b$sd_time_out_par=apply(WB1_b[,63:104], 1, sd, na.rm=TRUE)
+WB1_a=WB1_a[WB1_a$sd_likert_in != 0 & WB1_a$sd_likert_out != 0, ]
+names(WB1_b)
+WB1_b=WB1_b[WB1_b$sd_likert_in != 0 & WB1_b$sd_likert_out != 0, ]
+#View(WB1_b)
+dim(WB1_b)
+dim(WB1_a)
+WB1_b$Prop_in_inout<-WB1_b$`CONTEO IN-OUT`/(21)
+WB1_b$Prop_in_outin<-WB1_b$`CONTEO OUT-IN`/(21)
+
+### EXPERIMENTO 1 TAREA A#####
+WB1_a$ORDEN<-as.factor(WB1_a$ORDEN)
+summary(WB1_a$ORDEN)
+WB1_a$DISPOSITIVO<-as.factor(WB1_a$DISPOSITIVO)
+summary(WB1_a$DISPOSITIVO)
+mean(WB1_a$`DURACIÓN TAREA 1 (Segundos)`)/60
+TIEMPOPROMEDIO<-WB1_a[-30,]
+mean(TIEMPOPROMEDIO$`DURACIÓN TAREA 2 (Segundos)`)/60
+mean(TIEMPOPROMEDIO$`DURACIÓN (Segundos)`)/60
+
+mean(WB1_a$mean_likert_in)
+sd(WB1_a$mean_likert_in)
+
+mean(WB1_a$mean_likert_out)
+sd(WB1_a$mean_likert_out)
+
+median(WB1_a$median_likert_in)
+median(WB1_a$median_likert_out)
+
+####NORMALIDAD####
+
+shapiro.test(WB1_a$mean_likert_in)
+shapiro.test(WB1_a$mean_likert_out)
+par(mfrow = c(1, 2))
+qqnorm(WB1_a$mean_likert_in, xlab = "", ylab = "", main = "Inward",col = "springgreen4")
+qqline(WB1_a$mean_likert_in)
+qqnorm(WB1_a$mean_likert_out, xlab = "", ylab = "", main = "Outward",col = "firebrick")
+qqline(WB1_a$mean_likert_out)
+
+####TAMA?O DEL EFECTO####
+library(effsize)
+Cohen<-cohen.d(d = WB1_a$mean_likert_in, f=WB1_a$mean_likert_out,paired =TRUE)
+Hedges<-cohen.d(hedges.correction=TRUE,d = WB1_a$mean_likert_in, f = WB1_a$mean_likert_out, paired =TRUE)
+Cliff<-cliff.delta(d = WB1_a$mean_likert_in, f = WB1_a$mean_likert_out, paired =TRUE,return.dm=TRUE)
+VD.A(d = WB1_a$mean_likert_in,
+     f = WB1_a$mean_likert_out) ### valor cercano a 50, quiere decir que los dos grupos son estoc?sticamente iguales. 
+wilcoxonR(x = WB1_a$mean_likert_in,
+          g = WB1_a$mean_likert_out)
+
+### Topolinski Calculo ###
+t<-t.test(x = WB1_a$mean_likert_in, y = WB1_a$mean_likert_out, alternative = "two.sided",
+          mu = 0, paired = TRUE, conf.level = 0.95);t
+
+  diferencia1<-WB1_a$mean_likert_in - WB1_a$mean_likert_out
+mediadiff1<-mean(diferencia1)
+desvdiff1<-sd(diferencia1)
+Dz1<-t$statistic / sqrt(t$parameter+1);Dz1
+
+Dz2<-mediadiff1/desvdiff1;Dz2
+
+####PRUEBAS DE HIPOTESIS####
+
+datos <- data.frame(Inward = WB1_a$mean_likert_in, Outward = WB1_a$mean_likert_out)
+
+wilcoxsign_test(Inward ~ Outward, data = datos, distribution = "exact")
+
+t<-t.test(x = WB1_a$mean_likert_in, y = WB1_a$mean_likert_out, alternative = "two.sided",
+       mu = 0, paired = FALSE, conf.level = 0.95);t
+
+wilcox.test(WB1_a$mean_likert_in,WB1_a$mean_likert_out, paired=TRUE, correct=FALSE, conf.int=TRUE)
+
+### si se hace el tratamiento sobre la mediana
+datos <- data.frame(Inward = WB1_a$median_likert_in, Outward = WB1_a$median_likert_out)
+wilcoxsign_test(Inward ~ Outward, data = datos, distribution = "exact")
+t<-t.test(x = WB1_a$median_likert_in, y = WB1_a$median_likert_out, alternative = "two.sided",
+          mu = 0,var.equal=TRUE ,paired = TRUE, conf.level = 0.95);t
+wilcox.test(WB1_a$median_likert_in,WB1_a$median_likert_out, paired=TRUE, correct=FALSE, conf.int=TRUE)
+
+mean(WB1_a$median_likert_in)
+mean(WB1_a$median_likert_out)
+
+median(WB1_a$median_likert_in)
+median(WB1_a$median_likert_out)
+
+tabla <- read.table(file = "clipboard", sep = "\t", header=TRUE)
+str(tabla)
+
+Experimento1_tiemposB <- read_excel("D:/INFORMACION/Escritorio/Experimento1_tiemposB.xlsx")
+tabla1<-Experimento1_tiemposB
+
+datos1 <- data.frame(Inward = tabla$in., Outward = tabla$out)
+
+t<-t.test(x = tabla1$In, y = tabla1$Out, alternative = "two.sided",
+          mu = 0,var.equal=TRUE ,paired = TRUE, conf.level = 0.95);t
+wilcox.test(tabla$in.,tabla$out, paired=TRUE, correct=FALSE, conf.int=TRUE)
+
+t<-t.test(x = tabla$Mediana.In, y = tabla$Mediana.Out, alternative = "two.sided",
+          mu = 0,var.equal=TRUE ,paired = TRUE, conf.level = 0.95);t
+wilcox.test(tabla$Mediana.In,tabla$Mediana.Out, paired=TRUE, correct=FALSE, conf.int=TRUE)
+wilcoxsign_test(tabla$in. ~ tabla$out, data = tabla, distribution = "exact")
+
+mean(tabla$in.)
+sd(tabla$in.)
+mean(tabla$out)
+sd(tabla$out)
+## que pasa si lo hago con la sd
+
+datos <- data.frame(Inward = WB1_a$sd_likert_in, Outward = WB1_a$sd_likert_out)
+wilcoxsign_test(Inward ~ Outward, data = datos, distribution = "exact")
+t<-t.test(x = WB1_a$sd_likert_in, y = WB1_a$sd_likert_out, alternative = "two.sided",
+          mu = 0, paired = TRUE, conf.level = 0.95);t
+wilcox.test(WB1_a$sd_likert_in,WB1_a$sd_likert_out, paired=TRUE, correct=FALSE, conf.int=TRUE)
+
+### es mejor hacer el tratamiento con la variable de medianas promedio. #####
+library(effsize)
+Cohen<-cohen.d(d = WB1_a$median_likert_in, f=WB1_a$median_likert_out,paired =TRUE)
+Hedges<-cohen.d(hedges.correction=TRUE,d = WB1_a$mean_likert_in, f = WB1_a$mean_likert_out, paired =TRUE)
+Cliff<-cliff.delta(d = WB1_a$mean_likert_in, f = WB1_a$mean_likert_out, paired =TRUE,return.dm=TRUE)
+VD.A(d = WB1_a$mean_likert_in,
+     f = WB1_a$mean_likert_out) ### valor cercano a 50, quiere decir que los dos grupos son estoc?sticamente iguales. 
+wilcoxonR(x = WB1_a$mean_likert_in,
+          g = WB1_a$mean_likert_out)
+
+### Topolinski Calculo ####
+t<-t.test(x = WB1_a$mean_likert_in, y = WB1_a$mean_likert_out, alternative = "two.sided",
+          mu = 0, paired = TRUE, conf.level = 0.95);t
+
+diferencia1<-WB1_a$mean_likert_in - WB1_a$mean_likert_out
+mediadiff1<-mean(diferencia1)
+desvdiff1<-sd(diferencia1)
+Dz1<-t$statistic / sqrt(t$parameter+1);Dz1
+
+Dz2<-mediadiff1/desvdiff1;Dz2
+
+
+## tiempo ####
+
+shapiro.test(WB1_a$mean_time_in)
+shapiro.test(WB1_a$mean_time_out)
+
+outliers <- boxplot(WB1_a$mean_time_in)
+outl<-as.data.frame(outliers$out)
+outl <- outl[with(outl, order(outl$`outliers$out`)),]
+outl<- as.data.frame(outl)
+inward_outliers <- subset(WB1_a$mean_time_in, WB1_a$mean_time_in< outl[1,])
+length(inward_outliers)
+
+par(mfrow = c(1, 2))
+qqnorm(WB1_a$mean_time_in, xlab = "", ylab = "", main = "Inward")
+qqline(WB1_a$mean_time_in)
+
+qqnorm(inward_outliers, xlab = "", ylab = "", main = "Inward sin outliers")
+qqline(inward_outliers)
+
+outliers <- boxplot(WB1_a$mean_time_out)
+outl1<-as.data.frame(outliers$out)
+outl1<- outl1[with(outl1, order(outl1$`outliers$out`)),]
+outl1<- as.data.frame(outl1)
+Outward_outliers <- subset(WB1_a$mean_time_out, WB1_a$mean_time_out< outl1[1,])
+length(Outward_outliers)
+
+par(mfrow = c(1, 2))
+
+qqnorm(WB1_a$mean_time_out, xlab = "", ylab = "", main = "Outward")
+qqline(WB1_a$mean_time_out)
+
+qqnorm(Outward_outliers, xlab = "", ylab = "", main = "Outward")
+qqline(Outward_outliers)
+mean(WB1_a$mean_time_in)
+sd(WB1_a$mean_time_in)
+mean(WB1_a$mean_time_out)
+sd(WB1_a$mean_time_out)
+
+
+datos <- data.frame(Inward = TIEMPOPROMEDIO$mean_time_in, Outward = TIEMPOPROMEDIO$mean_time_out)
+wilcoxsign_test(Inward ~ Outward, data = datos, distribution = "exact")
+t<-t.test(x = TIEMPOPROMEDIO$mean_time_in, y = TIEMPOPROMEDIO$mean_time_out, alternative = "two.sided",
+          mu = 0, paired = TRUE, conf.level = 0.95);t 
+wilcox.test(WB1_a$mean_time_in,WB1_a$mean_time_out, paired=TRUE, correct=FALSE, conf.int=TRUE)
+
+####PODER ESTADISTICO####
+pwr.t.test(d=Dz2,n=158,sig.level=0.05,type="paired",alternative="two.sided")### MUY INTERESANTE EL PODER ESTADISTICO DE ESTO.
+
+#####################################################################
+###REPLICABILIDAD####
+
+tabla <- read_excel("D:/INFORMACION/Escritorio/Experimento1_arreglada.xlsx", sheet = "Hoja3",na = "NA")
+
+shapiro.test(tabla$In)
+shapiro.test(tabla$Out)
+par(mfrow = c(1, 2))
+qqnorm(tabla$In, xlab = "", ylab = "", main = "Inward")
+qqline(tabla$In)
+qqnorm(tabla$Out, xlab = "", ylab = "", main = "Outward")
+qqline(tabla$Out)
+
+test_topo<-t.test(x = tabla$In, y = tabla$Out, alternative = "two.sided",
+       mu = 0, paired = TRUE, conf.level = 0.95)
+wilcox.test(tabla$In,tabla$Out,paired=TRUE,correct=FALSE, conf.int=TRUE)
+
+cohen.d(d = tabla$In, f = tabla$Out, paired = TRUE) #### es diferentea lo que reporta Topolinski en su paper. 
+##### como lo obtiene Topolinski #####
+diferencia<-tabla$In-tabla$Out
+mediadiff<-mean(diferencia)
+desvdiff<-sd(diferencia)
+Dz1<-test_topo$statistic/ sqrt(test_topo$parameter+1);Dz1
+Dz2<-mediadiff/desvdiff;Dz2
+
+
+#### CONTRASTE #####
+
+par(mfrow = c(2, 2))
+qqnorm(tabla$In, xlab = "", ylab = "", main = "Inward")
+qqline(tabla$In)
+qqnorm(tabla$Out, xlab = "", ylab = "", main = "Outward")
+qqline(tabla$Out)
+qqnorm(WB1_a$mean_likert_in, xlab = "", ylab = "", main = "Inward")
+qqline(WB1_a$mean_likert_in)
+qqnorm(WB1_a$mean_likert_out, xlab = "", ylab = "", main = "Outward")
+qqline(WB1_a$mean_likert_out)
+
+par(mfrow = c(1, 2))
+boxplot(tabla$In,WB1_a$mean_likert_in)
+boxplot(tabla$Out,WB1_a$mean_likert_out)
+
+
+##########################################################################################
+### EXPERIMENTO 1 TAREA B#####
+
+qqnorm(WB1_b$Prop_in)
+qqline(WB1_b$Prop_in)
+shapiro.test(WB1_b$Prop_in)
+test_topo<-t.test(WB1_b$Prop_in,mu=0.5, alternative= "two.sided")
+Dz1<-test_topo$statistic/ sqrt(test_topo$parameter+1);Dz1
+pwr.t.test(d=Dz1,n=158,sig.level=0.05,type="one",alternative="two.sided")### MUY INTERESANTE EL PODER ESTADISTICO DE ESTO.
+
+
+qqnorm(WB1_b$Prop_out)
+qqline(WB1_b$Prop_out)
+shapiro.test(WB1_b$Prop_out)
+t.test(WB1_b$Prop_out,mu=0.5, alternative= "less")
+
+mean(WB1_b$Prop_in)
+mean(WB1_b$Prop_out)
+
+mean(WB1_b$Prop_in_inout)
+sd(WB1_b$Prop_in_inout)
+mean(WB1_b$Prop_in_outin)
+sd(WB1_b$Prop_in_outin)
+
+WB1_b$DISPOSITIVO<-as.factor(WB1_b$DISPOSITIVO)
+dsad<-lm(WB1_b$Prop_in_outin~1+DISPOSITIVO,data=WB1_b)
+summary(dsad)
+
+qqnorm(WB1_b$Prop_in_inout)
+qqline(WB1_b$Prop_in_inout)
+shapiro.test(WB1_b$Prop_in_inout)
+t.test(WB1_b$Prop_in_inout,mu=.50, alternative= "less")### por qu? es diferente. 
+
+qqnorm(WB1_b$Prop_in_outin)
+qqline(WB1_b$Prop_in_outin)
+shapiro.test(WB1_b$Prop_in_outin)
+prop<-t.test(WB1_b$Prop_in_outin,mu=.50, alternative= "two.sided")### por qu? es diferente. 
+
+diferencia<-tabla$In-tabla$Out
+mediadiff<-mean(diferencia)
+desvdiff<-sd(diferencia)
+Dz1<-prop$statistic/ sqrt(prop$parameter+1);Dz1
+Dz2<-mediadiff/desvdiff;Dz2
+
+library(psych)
+describe(WB1_a$mean_likert_out)
+
+### replica ####
+
+qqnorm(tareab$prop_inward)
+qqline(tareab$prop_inward)
+shapiro.test(tareab$prop_inward)
+t.test(tareab$prop_inward, mu = 0.5)
+
+mean(tareab$prop_inward)
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@####
+
+WBdeff<-as.data.frame(cbind(WB1_a$SUJETO,
+                            WB1_a$DISPOSITIVO,
+                            WB1_a$ORDEN,
+                            WB1_a$Edad,
+                            WB1_a$Sexo,
+                            WB1_a$mean_likert_in,
+                            WB1_a$mean_likert_out,
+                            WB1_a$median_likert_in,
+                            WB1_a$median_likert_out,
+                            WB1_b$Prop_in,
+                            WB1_b$Prop_out,
+                            WB1_b$Prop_in_inout,
+                            WB1_b$Prop_in_outin,
+                            WB1_a$`?Cu?l es su nivel educativo m?s alto alcanzado y aprobado?`,
+                            WB1_a$`?Acostumbra a realizar pagos por medios electr?nicos?`,
+                            WB1_a$`?Alguna vez ha VENDIDO un producto/servicio por internet?`,
+                            WB1_a$`?Alguna vez ha COMPRADO un producto/servicio por internet?`,
+                            WB1_a$`?Tiene tarjeta de cr?dito?`,
+                            WB1_a$`?Ha realizado alguna transacci?n (compra o venta) en eBay?`,
+                            WB1_a$`De las siguientes caracter?sticas, ?en cu?l se fijar?a m?s antes de realizar una transacci?n en l?nea?`,
+                            WB1_a$`?Qu? prefiere m?s?`,
+                            WB1_a$`?Alguna vez ha tenido una mala experiencia en transacciones en l?nea?`),stringsAsFactors=FALSE)
+
+
+names(WBdeff)[1] <- "Sujeto"
+names(WBdeff)[2] <- "Dispositivo"
+names(WBdeff)[3] <- "Orden"
+names(WBdeff)[4] <- "Edad"
+names(WBdeff)[5] <- "Sexo"
+names(WBdeff)[6] <- "Mean_in"
+names(WBdeff)[7] <- "Mean_out"
+names(WBdeff)[8] <- "Median_in"
+names(WBdeff)[9] <- "Median_out"
+names(WBdeff)[10] <- "Proporcion_in"
+names(WBdeff)[11] <- "Proporcion_out"
+names(WBdeff)[12] <- "Proporcion_inout"
+names(WBdeff)[13] <- "Proporcion_outin"
+names(WBdeff)[14] <- "P1"
+names(WBdeff)[15] <- "P2"
+names(WBdeff)[16] <- "P3"
+names(WBdeff)[17] <- "P4"
+names(WBdeff)[18] <- "P5"
+names(WBdeff)[19] <- "P6"
+names(WBdeff)[20] <- "P7"
+names(WBdeff)[21] <- "P8"
+names(WBdeff)[22] <- "P9"
+names(WBdeff)
+
+WBdeff$Dispositivo<-as.factor(WBdeff$Dispositivo)
+WBdeff$Orden<-as.factor(WBdeff$Orden)
+WBdeff$Edad<-as.numeric(WBdeff$Edad)
+WBdeff$Sexo<-as.factor(WBdeff$Sexo)
+WBdeff$`Mean in`<-as.numeric(WBdeff$`Mean_in`)
+WBdeff$`Mean out`<-as.numeric(WBdeff$`Mean_out`)
+WBdeff$`Median in`<-as.numeric(WBdeff$`Median_in`)
+WBdeff$`Median out`<-as.numeric(WBdeff$`Median_out`)
+WBdeff$`Proporcion in`<-as.numeric(WBdeff$`Proporcion_in`)
+WBdeff$`Proporcion in`<-as.numeric(WBdeff$`Proporcion_out`)
+WBdeff$`Proporcion inout`<-as.numeric(WBdeff$`Proporcion_inout`)
+WBdeff$`Proporcion outin`<-as.numeric(WBdeff$`Proporcion_outin`)
+
+WBdef1<-WBdeff[,1:13]
+names(WBdef1)
+
+WBdef1_1 <- WBdef1 %>% gather(var, value, `Mean_in`:`Mean_out`)
+WBdef1_2 <- WBdef1 %>% gather(var1, value1, `Median_in`:`Median_out`)
+WBdef1_3 <- WBdef1 %>% gather(var2, value2, `Proporcion_in`:`Proporcion_out`)
+WBdef1_4 <- WBdef1 %>% gather(var3, value3, `Proporcion_inout`:`Proporcion_outin`)
+
+WBdef<-cbind.data.frame(WBdef1_1$Sujeto,WBdef1_1$Dispositivo,WBdef1_1$Orden,WBdef1_1$Edad,WBdef1_1$Sexo,
+                        WBdef1_1$var,WBdef1_1$value,
+                        WBdef1_2$var1,WBdef1_2$value1,
+                        WBdef1_3$var2,WBdef1_3$value2,
+                        WBdef1_4$var3,WBdef1_4$value3,stringsAsFactors=FALSE)
+names(WBdef)[1] <- "Sujeto"
+names(WBdef)[2] <- "Dispositivo"
+names(WBdef)[3] <- "Orden"
+names(WBdef)[4] <- "Edad"
+names(WBdef)[5] <- "Sexo"
+names(WBdef)[6] <- "Tipo"
+names(WBdef)[7] <- "Mean"
+names(WBdef)[8] <- "Tipo2"
+names(WBdef)[9] <- "Median"
+names(WBdef)[10] <- "Tipo3"
+names(WBdef)[11] <- "Prop_in"
+names(WBdef)[12] <- "Tipo4"
+names(WBdef)[13] <- "Prop_in_orden"
+
+WBdef$Tipo<-as.factor(WBdef$Tipo)
+WBdef$Tipo2<-as.factor(WBdef$Tipo2)
+WBdef$Tipo3<-as.factor(WBdef$Tipo3)
+WBdef$Tipo4<-as.factor(WBdef$Tipo4)
+WBdef$Mean<-as.numeric(WBdef$Mean)
+WBdef$Median<-as.numeric(WBdef$Median)
+WBdef$Prop_in<-as.numeric(WBdef$Prop_in)
+WBdef$Prop_in_orden<-as.numeric(WBdef$Prop_in_orden)
+str(WBdef)
+names(WBdef)
+
+by(data = WBdef$Mean, INDICES = WBdef$Tipo, FUN = mean)
+library(ggplot2)
+ggplot(data = WBdef, mapping = aes(x = Tipo, y = Mean, colour = Tipo)) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(legend.position = "none") 
+
+friedman.test(WBdef$Mean, WBdef$Tipo, WBdef$Sujeto)
+friedman.test(WBdef$Median, WBdef$Tipo, WBdef$Sujeto)### cambia la conclusion estadistica
+
+pairwise.wilcox.test(WBdef$Mean, WBdef$Tipo, paired = TRUE, p.adjust.method = "holm")
+
+require(coin)
+datos <- data.frame(Inward = WB1_a$mean_likert_in, Outward = WB1_a$mean_likert_out)
+wilcoxsign_test(Inward ~ Outward, data = datos, distribution = "exact")
+
+datos <- data.frame(Inward = WB1_a$median_likert_in, Outward = WB1_a$median_likert_out)
+wilcoxsign_test(Inward ~ Outward, data = datos, distribution = "exact")
+
+
+##############################
+interaction.plot( WBdef$Tipo, # factor en el eje x
+                  WBdef$Orden, # factor representado en diferentes l?neas
+                  WBdef$Mean, # var. dependiente
+                  # editar el gr?fico 
+                  col = c( "#27ae60", "#27ae60", "#e74c3c", "#e74c3c"), # color de l?neas
+                  lty = c( 3, 1 ), # tipo de l?neas
+                  lwd = 3, # grosor de l?nea
+                  ylab = "Confiabilidad",
+                  xlab = "Tipo", 
+                  trace.label = "Orden" )
+
+mean(WB1_a$Edad)
+sd(WB1_a$Edad)
+dim(WB1_a)
+WB1_a$Sexo<-as.data.frame(as.factor(WB1_a$Sexo))
+summary(WB1_a$Sexo)
+Hombres<-66/158
+mujeres<-92/158
+
+
+sumary(WB1_a$Sexo)
+
+#######TERCER ANALISIS
+
+RegBeta<-as.data.frame(cbind(WB1_a$DISPOSITIVO,WB1_a$mean_likert_in,WB1_a$mean_likert_out,WB1_b$Prop_in,WB1_b$Prop_out,WB1_b$Prop_in_outin,WB1_b$Prop_in_inout))
+RegBeta$V1<-as.factor(RegBeta$V1)
+View(RegBeta)
+names(RegBeta)=c("Mean_In","Mean_Out","Prop_In","Prop_Out","Prop_In_OutIN","Prop_In_InOut")
+library(betareg)
+fit=betareg(Prop_In~Mean_In+Mean_Out,data=RegBeta)
+
+fit=betareg(V4~V1,data=RegBeta)
+
+fit=betareg(V6~V1,data=RegBeta)
+
+
+summary(fit)
+
+(exp(0.26310)/(1+exp(0.13696)))
+
+#Yo espero que la taza de eleccion Inward sobre la Outward, sea del 60% aproximadamente, con los parametros establecidos.
+
+In<-(exp(0.13696)/(1+exp(0.13696)))
+
+## yo espero que la elección de para usuarios con nombre Inward sea 1.1468 veces, la taza de eleccion Inward es 1.1468, o 14,68% mayor frente a la eleccion outward. (53,42% mayor) 
+## el signo es positivo (que por cada unidad adicional en la confiabilidad), manteniendo las demas variables fijas, yo espero que la razon (la comparación) de eleccion Inward sobre Outward aumente aproximadamente  
+##, aunque no es significativo a 0,05, pero sí a 0,1.
+
+## o espero que aumente en 13% y el otro decremente 14%
+
+Out<-(exp(-0.14793)/(1+exp(0.13696)))
+
+### manteniendo la confiabilidad constante sobre las palabras inward, espero que la eleccion inward decremente en un 40,17% si existe un incremento de una unidad de confiabilidad sobre nombres de usuario Outward. 
+
+### PHI
+
+1/(24.321+1)
+
+#### El parametro Phi es muy cercana a 0, indicando que no hay mucha dispersion en los parametros, y es estable. el parametro corrige la varianza en un 3,9%.
+
+fit=betareg(Prop_In~Mean_In+Mean_Out|Mean_In,data=RegBeta)
+summary(fit)
+
+
+
+
+WB1_a$Diferencia<-WB1_a$mean_likert_in-WB1_a$mean_likert_out
+WB1_a$Segmentacion1<- cut(WB1_a$Diferencia, breaks = c(-1000,-0.000000000000009,0.0000000000000009,1000), labels = c("Mayoritariamente Outward", "Indiferente","Mayoritariamente Inward"))
+WB1_a$Segmentacion1<-as.factor(WB1_a$Segmentacion1)
+summary(WB1_a$Segmentacion1)
+
+WB1_a$Diferencia1<-WB1_a$median_likert_in-WB1_a$median_likert_out
+WB1_a$Segmentacion2<- cut(WB1_a$Diferencia1, breaks = c(-1000,-0.000000000000009,0.0000000000000009,1000), labels = c("Mayoritariamente Outward","Indiferente", "Mayoritariamente Inward"))
+summary(WB1_a$Segmentacion2)
+
+Tabla1_medias<-as.data.frame(cbind(WB1_a$Segmentacion1,WB1_b$Prop_in,WB1_b$Prop_out))
+str(Tabla1_medias)
+Tabla1_medias$V1<-as.factor(Tabla1_medias$V1)
+
+ggplot(Tabla1_medias,aes(x = V2)) + 
+  geom_histogram(aes(y = ..density.., colour = V1)) +
+  facet_grid(.~ V1) +
+  theme_bw() + theme(legend.position = "none")
+
+par(mfrow = c(1, 2))
+qqnorm(Tabla1_medias[Tabla1_medias$V1 == "1","V2"], xlab = "", ylab = "",
+       main = "Mayoritariamente Inward", col = "firebrick")
+qqline(Tabla1_medias[Tabla1_medias$V1 == "1","V2"])
+qqnorm(Tabla1_medias[Tabla1_medias$V1 == "2","V2"], xlab = "", ylab = "",
+       main = "Mayoritariamente Outward", col = "springgreen4")
+qqline(Tabla1_medias[Tabla1_medias$V1 == "1","V2"])
+
+shapiro.test(Tabla1_medias[Tabla1_medias$V1 == "1","V2"])
+shapiro.test(Tabla1_medias[Tabla1_medias$V1 == "2","V2"])
+
+ggplot(data = Tabla1_medias) +
+  geom_boxplot(aes(x = V1, y = V2, colour = V1)) +
+  theme_bw() + theme(legend.position = "none")
+
+require(car)
+fligner.test(V2 ~ V1, data = Tabla1_medias)
+leveneTest(V2 ~ V1, data = Tabla1_medias, center = "median")
+#Ninguno de los dos test encuentra evidencias significativas (para alpha = 0.05) de que las variancias sean distintas entre ambas poblaciones. Si las varianzas no fuesen iguales se tendría que realizar el t-test con la corrección de Welch.
+
+t.test(x = Tabla1_medias[Tabla1_medias$V1 == "1","V2"],
+       y = Tabla1_medias[Tabla1_medias$V1 == "3","V2"],
+       alternative = "two.sided", mu = 0, var.equal = TRUE, conf.level = 0.95)
+### NO HAY DIFERENCIAS.
+t.test(x = Tabla1_medianas[Tabla1_medianas$V1 == "1","V2"],
+       y = Tabla1_medianas[Tabla1_medianas$V1 == "3","V2"],
+       alternative = "two.sided", mu = 0, var.equal = TRUE, conf.level = 0.95)
+
+anova <- aov(Tabla1_medias$V2 ~ Tabla1_medias$V1)
+summary(anova)
+
+anova <- aov(Tabla1_medianas$V2 ~ Tabla1_medianas$V1)
+summary(anova)
+
+kruskal.test(Tabla1_medias$V2 ~ Tabla1_medias$V1, data = Tabla1_medias)
+
+kruskal.test(Tabla1_medianas$V2 ~ Tabla1_medianas$V1, data = Tabla1_medianas)
+
+
+
+Tabla1_medianas<-as.data.frame(cbind(WB1_a$Segmentacion2,WB1_b$Prop_in,WB1_b$Prop_out))
+str(Tabla1_medianas)
+Tabla1_medianas$V1<-as.factor(Tabla1_medianas$V1)
+str(Tabla1_medianas)
+
+
+ggplot(Tabla1_medianas,aes(x = V2)) + 
+  geom_histogram(aes(y = ..density.., colour = V1)) +
+  facet_grid(.~ V1) +
+  theme_bw() + theme(legend.position = "none")
