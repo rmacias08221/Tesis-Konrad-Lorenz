@@ -12,7 +12,7 @@ library(pwr)
 library(tidyverse)
 getGroupMembers("Summary")
 ####CARGA DE DOCUMENTOS####
-Experimento1 <- read_excel("D:/INFORMACION/Escritorio/Experimento1_arreglada.xlsx", sheet = "Worksheet",na = "NA")
+Experimento1 <- read_excel("Experimento1.xlsx", sheet = "Worksheet",na = "NA")
 Experimento1_a=Experimento1
 names(Experimento1_a)
 Experimento1_a$`CONTEO IN-OUT`[is.na(Experimento1_a$`CONTEO IN-OUT`)] <- 0
@@ -140,7 +140,7 @@ median(WB1_a$median_likert_out)
 tabla <- read.table(file = "clipboard", sep = "\t", header=TRUE)
 str(tabla)
 
-Experimento1_tiemposB <- read_excel("D:/INFORMACION/Escritorio/Experimento1_tiemposB.xlsx")
+Experimento1_tiemposB <- read_excel("Experimento1.xlsx")
 tabla1<-Experimento1_tiemposB
 
 datos1 <- data.frame(Inward = tabla$in., Outward = tabla$out)
@@ -239,7 +239,7 @@ pwr.t.test(d=Dz2,n=158,sig.level=0.05,type="paired",alternative="two.sided")### 
 #####################################################################
 ###REPLICABILIDAD####
 
-tabla <- read_excel("D:/INFORMACION/Escritorio/Experimento1_arreglada.xlsx", sheet = "Hoja3",na = "NA")
+tabla <- read_excel("Experimento1.xlsx", sheet = "Hoja3",na = "NA")
 
 shapiro.test(tabla$In)
 shapiro.test(tabla$Out)
