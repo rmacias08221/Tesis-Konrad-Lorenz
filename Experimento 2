@@ -13,7 +13,7 @@ library(tidyverse)
 getGroupMembers("Summary")
 
 ####CARGA DE DOCUMENTOS####
-Experimento2 <- read_excel("D:/INFORMACION/Escritorio/Experimento2.xlsx", sheet = "Worksheet",na = "NA")
+Experimento2 <- read_excel("Experimento2.xlsx", sheet = "Worksheet",na = "NA")
 Experimento2_a=Experimento2
 names(Experimento2_a)
 #View(Experimento2_a)
